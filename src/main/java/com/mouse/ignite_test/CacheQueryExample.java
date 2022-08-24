@@ -193,30 +193,68 @@ public class CacheQueryExample {
             igniters.getAll());
         sw.stop();
 
+
+        sw.start("in memory 2");
+        personList.stream().filter(p -> p.orgId.equals(2L) && p.salary > 1500.0).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 2.1");
         // Query for all people who work in the organization "Other" and have salary more than 1,500.
         QueryCursor<Cache.Entry<Long, Person>> others = cache.query(
             new IndexQuery<Long, Person>(Person.class)  // Index name {@link Person#ORG_SALARY_IDX} is optional.
                 .setCriteria(eq("orgId", 2L), gt("salary", 1500.0)));
-
+        sw.stop();
         print("Following people work in the 'Other' organizations and have salary more than 1500 (queried with INDEX query): ",
             others.getAll());
 
+        sw.start("in memory 3");
+        personList.stream().filter(p -> p.salary > 1500.0).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 3.1");
         // Query for all people who have salary more than 1,500 using BinaryObject.
         QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> rich = cache.withKeepBinary().query(
             new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
                 .setCriteria(gt("salary", 1500.0)));
-
+        sw.stop();
         print("Following people have salary more than 1500 (queried with INDEX query and using binary objects): ",
             rich.getAll());
 
+        sw.start("in memory 4");
+        personList.stream().filter(p -> p.salary > 1500.0 && p.resume.contains("Master")).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 4.1");
         // Query for all people who have salary more than 1,500 and have 'Master Degree' in their resumes.
         QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> richMasters = cache.withKeepBinary().query(
             new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
                 .setCriteria(gt("salary", 1500.0))
                 .setFilter((k, v) -> v.<String>field("resume").contains("Master")));
+        sw.stop();
 
         print("Following people have salary more than 1500 and Master degree (queried with INDEX query): ",
             richMasters.getAll());
+
+        sw.start("in memory 5");
+        personList.stream().filter(p -> p.resume.contains("Master")).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 5.1 string index");
+        // Query for all people who have salary more than 1,500 and have 'Master Degree' in their resumes.
+        QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> masters = cache.withKeepBinary().query(
+                new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
+                        .setFilter((k, v) -> v.<String>field("resume").contains("Master")));
+        sw.stop();
+
+        sw.start("in memory 6 no string index");
+        personList.stream().filter(p -> p.lastName.contains("10")).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 6.1 no string index");
+        QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> lastname10 = cache.withKeepBinary().query(
+                new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
+                        .setFilter((k, v) -> v.<String>field("lastname").contains("10")));
+        sw.stop();
         System.out.println(sw.prettyPrint());
 
     }
