@@ -1,10 +1,14 @@
 package com.mouse.ignite_test;
 
 import lombok.val;
+import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.binary.BinaryObject;
+import org.apache.ignite.cache.QueryEntity;
+import org.apache.ignite.cache.QueryIndex;
+import org.apache.ignite.cache.QueryIndexType;
 import org.apache.ignite.cache.query.IndexQuery;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
@@ -13,6 +17,7 @@ import org.apache.ignite.client.ClientCache;
 import org.apache.ignite.client.ClientTransaction;
 import org.apache.ignite.client.ClientTransactions;
 import org.apache.ignite.client.IgniteClient;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.ClientConfiguration;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
@@ -20,7 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.cache.Cache;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -160,34 +169,41 @@ class IgniteTestApplicationTests {
 
     @Test
     void queryTest() {
-        ClientConfiguration cfg = new ClientConfiguration().setAddresses("127.0.0.1:10800");
-        try (IgniteClient client = Ignition.startClient(cfg)) {
-            //=========================Get data from the cache=========================//
-            ClientCache<Long, BinaryObject> cache = client.getOrCreateCache("Person1");
-            IgniteBinary binary = client.binary();
-            for (long i = 0L; i < 100L; i++) {
-                BinaryObject val = binary.builder("com.mouse.ignite_test.Person").setField("id", i, long.class).setField("name", "a" + i, String.class)
-                        .build();
-//                val p = new Person();
-//                p.setId(i);
-//                p.setName("a" + i);
-                cache.put(i, val);
-            }
+        //本地ignite
+        Ignite ignite = Ignition.start();
+// Create index by 2 fields (orgId, salary).
+        LinkedHashMap<String, String> map = new LinkedHashMap<String, String>() {{
+            put("id", Long.class.getName());
+            put("name", String.class.getName());
+//            put("age", int.class.getName());
+//            put("address", Address.class.getName());
 
-            //这里get到的就是 Person 对象
-            System.out.println( cache.get(1L));
+        }};
+        QueryEntity personEntity = new QueryEntity(Integer.class, Person.class)
+                .setFields(map)
+                .setIndexes(Collections.singletonList(
+                        new QueryIndex(List.of("name"), QueryIndexType.SORTED)
+                                .setName("NAME_IDX")
+                ));
 
-            //Query of type [IndexQuery] is not supported
-            QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = cache.query(
-                    new IndexQuery<Long, BinaryObject>(Person.class)
-                            .setCriteria(eq("name", "a10"))
-            );
+        CacheConfiguration<Integer, Person> ccfg = new CacheConfiguration<Integer, Person>("entityCache")
+                .setQueryEntities(Collections.singletonList(personEntity))
+        ;
 
-            for (val entry : cursor) {
-                System.out.println("person=" + entry.getKey() + " value="+ entry.getValue());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        IgniteCache<Integer, Person> cache = ignite.getOrCreateCache(ccfg);
+
+// Find the persons who work in Organization 1.
+        QueryCursor<Cache.Entry<Integer, Person>> cursor = cache.query(
+                new IndexQuery<Integer, Person>(Person.class, "ORG_SALARY_IDX")
+                        .setCriteria(eq("orgId", 1))
+        );
+//        QueryCursor<Cache.Entry<Long, BinaryObject>> cursor = cache.query(
+//                new IndexQuery<Long, BinaryObject>(Person.class)
+//                        .setCriteria(eq("name", "a10"))
+//        );
+
+        for (val entry : cursor) {
+            System.out.println("person=" + entry.getKey() + " value=" + entry.getValue());
         }
     }
 
