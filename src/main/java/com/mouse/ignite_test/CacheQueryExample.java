@@ -182,17 +182,20 @@ public class CacheQueryExample {
         sw.stop();
 
         sw.start("ignite 1.1");
+        //不知道为什么这里好像没有使用索引，导致效果不如 cache.withKeepBinary()
         QueryCursor<Cache.Entry<Long, Person>> igniters = cache.query(
             new IndexQuery<Long, Person>(Person.class)
                 .setCriteria(eq("orgId", 1L))
         );
         sw.stop();
-        sw.start("ignite 1.2");
 
+        sw.start("ignite 1.2");
+        QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> org = cache.withKeepBinary().query(
+                new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
+                        .setCriteria(gt("orgId", 1L)));
+        sw.stop();
         print("Following people work in the 'ApacheIgnite' organization (queried with INDEX query): ",
             igniters.getAll());
-        sw.stop();
-
 
         sw.start("in memory 2");
         personList.stream().filter(p -> p.orgId.equals(2L) && p.salary > 1500.0).collect(Collectors.toList());
@@ -272,6 +275,12 @@ public class CacheQueryExample {
         Organization org1 = new Organization("ApacheIgnite");
         Organization org2 = new Organization("Other");
 
+        val orgList = new ArrayList<Organization>();
+        for (int i = 0;i<20; i++) {
+            Organization oi = new Organization("i");
+            orgList.add(oi);
+        }
+
         orgCache.put(org1.id(), org1);
         orgCache.put(org2.id(), org2);
 
@@ -283,7 +292,7 @@ public class CacheQueryExample {
         // People. 10000
         val r = new Random();
         for (int i = 0;i< 10000;i ++) {
-            Person p = new Person(r.nextBoolean() ? org1 : org2, "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
+            Person p = new Person(orgList.get(i % 20), "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
             colPersonCache.put(p.key(), p);
             personList.add(p);
         }
