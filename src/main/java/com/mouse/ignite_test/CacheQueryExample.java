@@ -21,6 +21,7 @@ import javax.cache.Cache;
 
 import com.mouse.ignite_test.model.Organization;
 import com.mouse.ignite_test.model.Person;
+import lombok.val;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
@@ -35,6 +36,12 @@ import org.apache.ignite.cache.query.TextQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
 //import org.apache.ignite.examples.ExampleNodeStartup;
 import org.apache.ignite.lang.IgniteBiPredicate;
+import org.springframework.util.StopWatch;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 import static org.apache.ignite.cache.query.IndexQueryCriteriaBuilder.eq;
 import static org.apache.ignite.cache.query.IndexQueryCriteriaBuilder.gt;
@@ -74,6 +81,7 @@ public class CacheQueryExample {
     /** Persons collocated with Organizations cache name. */
     private static final String PERSON_CACHE = CacheQueryExample.class.getSimpleName() + "Persons";
 
+    static List<Person> personList = new ArrayList<>();
     /**
      * Executes example.
      *
@@ -95,7 +103,6 @@ public class CacheQueryExample {
 
             personCacheCfg.setCacheMode(CacheMode.PARTITIONED); // Default.
             personCacheCfg.setIndexedTypes(AffinityKey.class, Person.class);
-
             try {
                 // Create caches.
                 ignite.getOrCreateCache(orgCacheCfg);
@@ -105,10 +112,10 @@ public class CacheQueryExample {
                 initialize();
 
                 // Example for SCAN-based query based on a predicate.
-                scanQuery();
+//                scanQuery();
 
                 // Example for TEXT-based querying for a given string in peoples resumes.
-                textQuery();
+//                textQuery();
 
                 // Example for INDEX-based query with index criteria.
                 indexQuery();
@@ -167,13 +174,24 @@ public class CacheQueryExample {
         IgniteCache<Long, Person> cache = Ignition.ignite().cache(PERSON_CACHE);
 
         // Query for all people who work in the organization "ApacheIgnite".
+        val sw = new StopWatch();
+
+
+        sw.start("in memory 1");
+        personList.stream().filter(p -> p.orgId.equals(1L)).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 1.1");
         QueryCursor<Cache.Entry<Long, Person>> igniters = cache.query(
             new IndexQuery<Long, Person>(Person.class)
                 .setCriteria(eq("orgId", 1L))
         );
+        sw.stop();
+        sw.start("ignite 1.2");
 
         print("Following people work in the 'ApacheIgnite' organization (queried with INDEX query): ",
             igniters.getAll());
+        sw.stop();
 
         // Query for all people who work in the organization "Other" and have salary more than 1,500.
         QueryCursor<Cache.Entry<Long, Person>> others = cache.query(
@@ -199,6 +217,8 @@ public class CacheQueryExample {
 
         print("Following people have salary more than 1500 and Master degree (queried with INDEX query): ",
             richMasters.getAll());
+        System.out.println(sw.prettyPrint());
+
     }
 
     /**
@@ -222,18 +242,23 @@ public class CacheQueryExample {
         // Clear caches before running the example.
         colPersonCache.clear();
 
-        // People.
-        Person p1 = new Person(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
-        Person p2 = new Person(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");
-        Person p3 = new Person(org2, "John", "Smith", 1000, "John Smith has Bachelor Degree.");
-        Person p4 = new Person(org2, "Jane", "Smith", 2000, "Jane Smith has Master Degree.");
+        // People. 10000
+        val r = new Random();
+        for (int i = 0;i< 10000;i ++) {
+            Person p = new Person(r.nextBoolean() ? org1 : org2, "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
+            colPersonCache.put(p.key(), p);
+            personList.add(p);
+        }
+//        Person p1 = new Person(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
+//        Person p2 = new Person(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");
+//        Person p3 = new Person(org2, "John", "Smith", 1000, "John Smith has Bachelor Degree.");
+//        Person p4 = new Person(org2, "Jane", "Smith", 2000, "Jane Smith has Master Degree.");
 
         // Note that in this example we use custom affinity key for Person objects
         // to ensure that all persons are collocated with their organizations.
-        colPersonCache.put(p1.key(), p1);
-        colPersonCache.put(p2.key(), p2);
-        colPersonCache.put(p3.key(), p3);
-        colPersonCache.put(p4.key(), p4);
+//        colPersonCache.put(p1.key(), p1);
+//        colPersonCache.put(p3.key(), p3);
+//        colPersonCache.put(p4.key(), p4);
     }
 
     /**
