@@ -20,7 +20,6 @@ package com.mouse.ignite_test.model;
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.mouse.ignite_test.Address;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 
 /**

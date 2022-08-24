@@ -20,6 +20,7 @@ package com.mouse.ignite_test;
 import javax.cache.Cache;
 
 import com.mouse.ignite_test.model.Organization;
+import com.mouse.ignite_test.model.Person;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.Ignition;
