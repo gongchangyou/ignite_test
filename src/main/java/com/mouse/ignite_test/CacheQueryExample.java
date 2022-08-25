@@ -225,6 +225,9 @@ public class CacheQueryExample {
 
         sw.start("in memory 4");
         personList.stream().filter(p -> p.salary > 1500.0 && p.resume.contains("Master")).collect(Collectors.toList());
+        for (val p:personList) {
+
+        }
         sw.stop();
 
         sw.start("ignite 4.1");
@@ -234,9 +237,14 @@ public class CacheQueryExample {
                 .setCriteria(gt("salary", 1500.0))
                 .setFilter((k, v) -> v.<String>field("resume").contains("Master")));
         sw.stop();
+        sw.start("ignite 4.2 loop");
+        for (val p:richMasters) {
 
-        print("Following people have salary more than 1500 and Master degree (queried with INDEX query): ",
-            richMasters.getAll());
+        }
+        sw.stop();
+
+//        print("Following people have salary more than 1500 and Master degree (queried with INDEX query): ",
+//            richMasters.getAll());
 
         sw.start("in memory 5");
         personList.stream().filter(p -> p.resume.contains("Master")).collect(Collectors.toList());
@@ -291,7 +299,7 @@ public class CacheQueryExample {
 
         // People. 10000
         val r = new Random();
-        for (int i = 0;i< 10000;i ++) {
+        for (int i = 0;i< 100000;i ++) {
             Person p = new Person(orgList.get(i % 20), "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
             colPersonCache.put(p.key(), p);
             personList.add(p);
