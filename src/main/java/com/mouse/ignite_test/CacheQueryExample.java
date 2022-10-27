@@ -235,9 +235,10 @@ public class CacheQueryExample {
         QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> richMasters = cache.withKeepBinary().query(
             new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
                 .setCriteria(gt("salary", 1500.0))
-                .setFilter((k, v) -> v.<String>field("resume").contains("Master")));
+                .setFilter((k, v) -> v.<String>field("resume").contains("Master"))
+        );
         sw.stop();
-        sw.start("ignite 4.2 loop");
+        sw.start("ignite 4.2 loop 只能迭代一次 游标已经置位");
         for (val p:richMasters) {
 
         }
@@ -258,13 +259,31 @@ public class CacheQueryExample {
         sw.stop();
 
         sw.start("in memory 6 no string index");
-        personList.stream().filter(p -> p.lastName.contains("10")).collect(Collectors.toList());
+        val list6 = personList.stream().filter(p -> p.lastName.contains("10")).collect(Collectors.toList());
         sw.stop();
 
         sw.start("ignite 6.1 no string index");
+        val list6ignite = new ArrayList<>();
         QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> lastname10 = cache.withKeepBinary().query(
                 new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
                         .setFilter((k, v) -> v.<String>field("lastname").contains("10")));
+        for (val p10: lastname10) {
+            list6ignite.add(p10);
+        }
+        sw.stop();
+
+        sw.start("in memory 7 no string index");
+        val list7 = personList.stream().filter(p -> p.firstName.equals("John30000")).collect(Collectors.toList());
+        sw.stop();
+
+        sw.start("ignite 7 no string index");
+        val list7ignite = new ArrayList<>();
+        QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> firstname10 = cache.withKeepBinary().query(
+                new IndexQuery<BinaryObject, BinaryObject>(Person.class.getName())
+                        .setFilter((k, v) -> v.<String>field("firstName").equals("John30000")));
+        for (val p10: firstname10) {
+            list7ignite.add(p10);
+        }
         sw.stop();
         System.out.println(sw.prettyPrint());
 

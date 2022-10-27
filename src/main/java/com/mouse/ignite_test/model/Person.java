@@ -42,7 +42,7 @@ public class Person implements Serializable {
     public Long orgId;
 
     /** First name (not-indexed). */
-    @QuerySqlField
+    @QuerySqlField(index = true)
     public String firstName;
 
     /** Last name (not indexed). */
