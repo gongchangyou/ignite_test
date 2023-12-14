@@ -35,6 +35,9 @@ import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cache.query.TextQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
 //import org.apache.ignite.examples.ExampleNodeStartup;
+import org.apache.ignite.configuration.DataRegionConfiguration;
+import org.apache.ignite.configuration.DataStorageConfiguration;
+import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.lang.IgniteBiPredicate;
 import org.springframework.util.StopWatch;
 
@@ -105,7 +108,7 @@ public class CacheQueryExample {
             personCacheCfg.setIndexedTypes(AffinityKey.class, Person.class);
             try {
                 // Create caches.
-                ignite.getOrCreateCache(orgCacheCfg);
+//                ignite.getOrCreateCache(orgCacheCfg);
                 ignite.getOrCreateCache(personCacheCfg);
 
                 // Populate caches.
@@ -285,43 +288,74 @@ public class CacheQueryExample {
             list7ignite.add(p10);
         }
         sw.stop();
+
+        sw.start("ignite 9  string index");
+        SqlFieldsQuery sql9 = new SqlFieldsQuery(
+                "select * from Persons");
+
+// Iterate over the result set.
+        try (QueryCursor<List<?>> cursor = cache.query(sql9)) {
+            for (List<?> row : cursor)
+                System.out.println("personName=" + row.get(0));
+        }
+        sw.stop();
+
         System.out.println(sw.prettyPrint());
 
     }
 
+    private static void initIgnite() {
+        IgniteConfiguration cfg = new IgniteConfiguration();
+
+// 创建数据区域配置
+        DataStorageConfiguration dataStorageCfg = new DataStorageConfiguration();
+
+        DataRegionConfiguration dataRegionCfg = new DataRegionConfiguration();
+        dataRegionCfg.setMaxSize(4L * 1024); // 设置数据区域的最大大小为4KB
+
+// 将数据区域配置添加到数据存储配置中
+        dataStorageCfg.setDataRegionConfigurations(dataRegionCfg);
+
+// 将数据存储配置添加到Ignite配置中
+        cfg.setDataStorageConfiguration(dataStorageCfg);
+
+// 启动Ignite节点
+        Ignition.start(cfg);
+
+    }
     /**
      * Populate cache with test data.
      */
     private static void initialize() {
-        IgniteCache<Long, Organization> orgCache = Ignition.ignite().cache(ORG_CACHE);
-
-        // Clear cache before running the example.
-        orgCache.clear();
-
-        // Organizations.
-        Organization org1 = new Organization("ApacheIgnite");
-        Organization org2 = new Organization("Other");
-
-        val orgList = new ArrayList<Organization>();
-        for (int i = 0;i<20; i++) {
-            Organization oi = new Organization("i");
-            orgList.add(oi);
-        }
-
-        orgCache.put(org1.id(), org1);
-        orgCache.put(org2.id(), org2);
+//        IgniteCache<Long, Organization> orgCache = Ignition.ignite().cache(ORG_CACHE);
+//
+//        // Clear cache before running the example.
+//        orgCache.clear();
+//
+//        // Organizations.
+//        Organization org1 = new Organization("ApacheIgnite");
+//        Organization org2 = new Organization("Other");
+//
+//        val orgList = new ArrayList<Organization>();
+//        for (int i = 0;i<20; i++) {
+//            Organization oi = new Organization("i");
+//            orgList.add(oi);
+//        }
+//
+//        orgCache.put(org1.id(), org1);
+//        orgCache.put(org2.id(), org2);
 
         IgniteCache<AffinityKey<Long>, Person> colPersonCache = Ignition.ignite().cache(PERSON_CACHE);
-
         // Clear caches before running the example.
         colPersonCache.clear();
 
         // People. 10000
         val r = new Random();
         for (int i = 0;i< 100000;i ++) {
-            Person p = new Person(orgList.get(i % 20), "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
+            Person p = new Person(new Organization(), "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
             colPersonCache.put(p.key(), p);
             personList.add(p);
+            System.out.println(" person add i=" + i);
         }
 //        Person p1 = new Person(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
 //        Person p2 = new Person(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");

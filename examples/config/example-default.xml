@@ -31,7 +31,15 @@
     <bean abstract="true" id="ignite.cfg" class="org.apache.ignite.configuration.IgniteConfiguration">
         <!-- Set to true to enable distributed class loading for examples, default is false. -->
         <property name="peerClassLoadingEnabled" value="true"/>
-
+<property name="dataStorageConfiguration" >
+    <bean class="org.apache.ignite.configuration.DataStorageConfiguration">
+        <property name="defaultDataRegionConfiguration">
+            <bean class="org.apache.ignite.configuration.DataRegionConfiguration">
+                <property name="maxSize" value="10485760"/>
+            </bean>
+        </property>
+    </bean>
+</property>
         <!-- Enable task execution events for examples. -->
         <property name="includeEventTypes">
             <list>
