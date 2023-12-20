@@ -355,7 +355,10 @@ public class CacheQueryExample {
             Person p = new Person(new Organization(), "John" + i, "Doe" + i, r.nextInt(10000), "John Doe has Master Degree." + i);
             colPersonCache.put(p.key(), p);
             personList.add(p);
-            System.out.println(" person add i=" + i);
+            val metrics = Ignition.ignite().cluster().forNodeId(Ignition.ignite().cluster().localNode().id()).metrics();
+            System.out.println("metrics :"+ metrics);
+            System.out.println(" person add i=" + i + " cache heap used:" + metrics.getHeapMemoryUsed() +  " cache heap total:" + metrics.getHeapMemoryTotal() + " cache Heap max:" + metrics.getHeapMemoryMaximum());
+            System.out.println(" person add i=" + i + " cache nonHeap used:" + metrics.getNonHeapMemoryUsed() +  " cache nonHeap total:" + metrics.getNonHeapMemoryTotal() + " cache nonHeap max:" + metrics.getNonHeapMemoryMaximum());
         }
 //        Person p1 = new Person(org1, "John", "Doe", 2000, "John Doe has Master Degree.");
 //        Person p2 = new Person(org1, "Jane", "Doe", 1000, "Jane Doe has Bachelor Degree.");
